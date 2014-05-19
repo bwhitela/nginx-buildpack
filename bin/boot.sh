@@ -15,9 +15,14 @@
 export APP_ROOT=$HOME
 
 conf_file=$APP_ROOT/nginx/conf/nginx.conf
-if [ -f $APP_ROOT/public/nginx.conf ]
+if [ -f $APP_ROOT/etc/nginx.conf ]
 then
-  conf_file=$APP_ROOT/public/nginx.conf
+  conf_file=$APP_ROOT/etc/nginx.conf
+fi
+
+if [ -f $APP_ROOT/nginx.conf ]
+then
+  conf_file=$APP_ROOT/nginx.conf
 fi
 
 mv $conf_file $APP_ROOT/nginx/conf/orig.conf

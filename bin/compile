@@ -20,7 +20,7 @@ set -e
 
 # ------------------------------------------------------------------------------------------------
 
-compile_nginx_download=https://dl.dropboxusercontent.com/u/5321751/download/nginx-buildpack/nginx-1.5.10.tar.gz
+compile_nginx_download=http://nginx.org/download/nginx-1.5.11.tar.gz
 
 # ------------------------------------------------------------------------------------------------
 
@@ -42,23 +42,19 @@ cd $compile_build_dir
 # ------------------------------------------------------------------------------------------------
 
 echo "-----> Doing work with $(basename ${compile_nginx_download%.tar.gz}) son."
-mkdir -p $compile_cache_dir/public
-mv * $compile_cache_dir/public
-mv $compile_cache_dir/public .
-[[ -f public/Procfile ]] && mv public/Procfile .
+mkdir -p $compile_cache_dir
+mv * $compile_cache_dir
+mv $compile_cache_dir .
+[[ -f Procfile ]] && mv Procfile .
 curl -s --max-time 60 $compile_nginx_download |tar xz
 
 cp -f $compile_buildpack_dir/conf/nginx.conf nginx/conf/nginx.conf
 cp -f $compile_buildpack_dir/conf/mime.types nginx/conf/mime.types
 
-[[ -f public/nginx.conf ]] && mv public/nginx.conf nginx/conf/nginx.conf
-[[ -f public/mime.types ]] && mv public/mime.types nginx/conf/mime.types
-
-echo "-----> Ensuring manifest.yml & stackato.yml aren't available in public/"
-rm -f public/{manifest,stackato}.yml
+[[ -f nginx.conf ]] && mv nginx.conf nginx/conf/nginx.conf
+[[ -f mime.types ]] && mv mime.types nginx/conf/mime.types
 
 # ------------------------------------------------------------------------------------------------
 cp $compile_buildpack_bin/boot.sh .
-#ls -lah
 
 # ------------------------------------------------------------------------------------------------
