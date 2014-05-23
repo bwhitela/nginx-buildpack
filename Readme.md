@@ -1,3 +1,6 @@
+# WORK IN PROGRESS! THIS IS NOT READY FOR USE YET! README WILL CHANGE SIGNIFICANTLY!
+
+
 # A buildpack for hosting static HTML websites on Cloud Foundry using Nginx
 
 
@@ -90,11 +93,11 @@ ldconfig # this is important otherwise nginx will compile but fail to load
 
 cd ~/src
 wget http://nginx.org/download/nginx-$nginx_version.tar.gz
-tar -xvzf nginx-$nginx_version.tar.gz 
+tar -xvzf nginx-$nginx_version.tar.gz
 cd nginx-$nginx_version
 ./configure
 
-make 
+make
 make install
 
 cd /usr/local
