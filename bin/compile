@@ -20,7 +20,7 @@ set -e
 
 # ------------------------------------------------------------------------------------------------
 
-compile_nginx_download=http://nginx.org/download/nginx-1.5.11.tar.gz
+compile_nginx_download=http://www.brettwhitelaw.com/pkg/nginx-1.6.0.tar.gz
 
 # ------------------------------------------------------------------------------------------------
 
