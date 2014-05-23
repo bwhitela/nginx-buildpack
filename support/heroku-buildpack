@@ -13,41 +13,51 @@
 # either express or implied. See the License for the specific language governing permissions
 # and  limitations under the License.
 # ------------------------------------------------------------------------------------------------
+# The following gist was referenced to enhance this build script:
+# https://gist.github.com/rjeczalik/7057434#file-building-static-nginx-txt
+# ------------------------------------------------------------------------------------------------
 
 buildpack_root=$PWD
 
 # ------------------------------------------------------------------------------------------------
 
-buildpack_pcre_version=8.32
-buildpack_pcre_url=ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre
-buildpack_pcre_download=$buildpack_pcre_url/pcre-$buildpack_pcre_version.tar.gz
+buildpack_openssl_download=https://www.openssl.org/source/openssl-1.0.1g.tar.gz
+buildpack_pcre_download=ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.35.tar.gz
 
 # ------------------------------------------------------------------------------------------------
 
-buildpack_nginx_url=http://nginx.org/download
-buildpack_nginx_version=1.5.11
+buildpack_nginx_download=http://nginx.org/download/nginx-1.6.0.tar.gz
 buildpack_nginx_build_flags=(
-  --with-http_gzip_static_module
-  --with-http_realip_module
-  --without-mail_pop3_module
-  --without-mail_imap_module
-  --without-mail_smtp_module
-  --without-http_empty_gif_module
-  --with-http_stub_status_module
+  --prefix=/
+#  --with-cc-opt="-static -static-libgcc"
+#  --with-ld-opt="-static"
+  --with-cpu-opt=generic
+  --with-pcre=./pcre-8.35
+  --with-mail
+  --with-ipv6
+  --with-poll_module
+  --with-select_module
+  --with-rtsig_module
+  --with-select_module
+  --with-poll_module
   --with-http_ssl_module
-  --prefix=/app/nginx
-  --with-pcre=./pcre-$buildpack_pcre_version
-)
-
-buildpack_nginx_download=$buildpack_nginx_url/nginx-$buildpack_nginx_version.tar.gz
-
-# ------------------------------------------------------------------------------------------------
-# The build line that goes into -c of vulcan build
-# ------------------------------------------------------------------------------------------------
-
-buildpack_build_line=(
-  "rm -rf /app/nginx && mkdir /app/nginx &&"
-  "./configure ${buildpack_nginx_build_flags[*]} && make install"
+  --with-http_spdy_module
+  --with-http_realip_module
+  --with-http_addition_module
+  --with-http_sub_module
+  --with-http_dav_module
+  --with-http_flv_module
+  --with-http_mp4_module
+  --with-http_gunzip_module
+  --with-http_gzip_static_module
+  --with-http_auth_request_module
+  --with-http_random_index_module
+  --with-http_secure_link_module
+  --with-http_degradation_module
+  --with-http_stub_status_module
+  --with-mail
+  --with-mail_ssl_module
+  --with-openssl=./openssl-1.0.1g
 )
 
 # ------------------------------------------------------------------------------------------------
@@ -72,7 +82,18 @@ function buildpack_download()
   then
     # Puts PCRE into the NGINX folder so it uploads yo.
     curl -s $buildpack_pcre_download |tar xzv -C $nginx
+    # Puts OpenSSL into the NGINX folder so it uploads. Is this needed?
+    curl -s $buildpack_openssl_download |tar xzv -C $nginx
   fi
+}
+
+# ------------------------------------------------------------------------------------------------
+# $~: heroku-buildpack dependencies
+# ------------------------------------------------------------------------------------------------
+
+function buildpack_dependencies()
+{
+  yum install libxslt-devel libxml2-static zlib-static pcre-static bzip2-devel openssl-static gcc gcc-c++ perl
 }
 
 # ------------------------------------------------------------------------------------------------
@@ -82,13 +103,10 @@ function buildpack_download()
 function buildpack_build()
 {
   nginx=$(basename ${buildpack_nginx_download%.tar.gz})
-  vulcan build -v \
-    -s $buildpack_root/sources/$nginx \
-    -p /app/nginx \
-    -c "${buildpack_build_line[*]}" || buildpack_exit "No"
+  cd $buildpack_root/sources/$nginx
   mkdir -p $buildpack_root/builds
-  mv /tmp/${nginx%.*}.tgz $buildpack_root/builds/$nginx.tar.gz
-  echo "You should probably run 'support/heroku-buildpack setup' to clean the build."
+  ./configure ${buildpack_nginx_build_flags[*]}
+  make -j1 install DESTDIR=$buildpack_root/builds/$nginx
 }
 
 # ------------------------------------------------------------------------------------------------
@@ -101,9 +119,7 @@ function buildpack_setup()
   mkdir -p $buildpack_root/builds
   cd $buildpack_root/builds
 
-  [[ -f $nginx.tar.gz ]] || buildpack_exit "No" && mkdir -p $nginx
-
-  tar xmzvf $nginx.tar.gz -C $nginx
+  [[ -d $nginx ]] || buildpack_exit "No"
   chmod -R uog+rx $nginx/sbin
   rm -rf $nginx/html
   rm -rf $nginx/conf
@@ -120,17 +136,21 @@ function buildpack_setup()
 function buildpack_cleanup()
 {
   rm -rf $buildpack_root/builds && rm -rf $buildpack_root/sources
-  mkdir  $buildpack_root/builds && mkdir  $buildpack_root/sources
 }
 
 # ------------------------------------------------------------------------------------------------
 
 case "$1" in
+  dependencies) buildpack_dependencies;;
   cleanup) buildpack_cleanup;;
   setup) buildpack_setup;;
   build) buildpack_build;;
   download) buildpack_download;;
-  run) buildpack_cleanup && buildpack_download && buildpack_build && buildpack_setup;;
+  run) buildpack_dependencies && \
+       buildpack_cleanup && \
+       buildpack_download && \
+       buildpack_build && \
+       buildpack_setup;;
 esac
 
 # ------------------------------------------------------------------------------------------------
